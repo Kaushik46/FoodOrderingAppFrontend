@@ -1,12 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Header from './common/header/Header';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
 
+
 ReactDOM.render(
-    <div>
-        Food Ordering App
-    </div>,
+    
+       <Header />
+    ,
     document.getElementById('root')
 );
 
