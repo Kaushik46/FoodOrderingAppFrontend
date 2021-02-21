@@ -143,9 +143,45 @@ class Header extends Component {
       return;
     }
 
-    
+    let that = this;
+    let dataLogin = null
+    let xhrLogin = new XMLHttpRequest();
+    xhrLogin.addEventListener("readystatechange", function () {
+      if (this.readyState === 4) {
+        let loginResponse = JSON.parse(xhrLogin.response);
+        if (loginResponse.code === 'ATH-001' || loginResponse.code === 'ATH-002') {
+          that.setState({ loginError: "dispBlock" });
+          that.setState({ loginErrCode: loginResponse.code });
+          that.setState({ loginErrorMsg: loginResponse.message });
+        } else {
+          sessionStorage.setItem('uuid', JSON.parse(this.responseText).id);
+          sessionStorage.setItem('access-token', xhrLogin.getResponseHeader('access-token'));
+          sessionStorage.setItem('firstName', JSON.parse(this.responseText).first_name);
+          that.setState({ firstname: JSON.parse(this.responseText).first_name });
+          that.setState({ loggedIn: true });
+          that.closeModalHandler();
+          that.setState({ snackBarText: "Registered successfully!Please login now"});
+          that.openMessageHandlerPostLogin();
+        }
+      }
+    })
+    xhrLogin.open("POST", this.props.baseUrl + "customer/login");
+    xhrLogin.setRequestHeader("authorization", "Basic " + window.btoa(this.state.username + ":" + this.state.password));
+    xhrLogin.setRequestHeader("Content-Type", "application/json");
+    xhrLogin.setRequestHeader("Cache-Control", "no-cache");
+    xhrLogin.setRequestHeader("Access-Control-Allow-Origin", "*");
+    xhrLogin.send(dataLogin);
+
   }
- 
+  /*
+  checkForm = () => {
+    this.state.email === "" ? this.setState({ emailRequired: "dispBlock" }) : this.setState({ emailRequired: "dispNone" });
+    this.state.firstname === "" ? this.setState({ firstnameRequired: "dispBlock" }) : this.setState({ firstnameRequired: "dispNone" });
+    this.state.lastname === "" ? this.setState({ lastnameRequired: "dispBlock" }) : this.setState({ lastnameRequired: "dispNone" });
+    this.state.mobile === "" ? this.setState({ mobileRequired: "dispBlock" }) : this.setState({ mobileRequired: "dispNone" });
+    this.state.passwordReg === "" ? this.setState({ passwordRegRequired: "dispBlock" }) : this.setState({ passwordRegRequired: "dispNone" });
+    if (this.state.email === "" || this.state.firstname === "" || this.state.lastname === "" || this.state.mobile === "" || this.state.passwordReg === "") { return; }
+  }*/
 
   //Sign up function
   signUpClickHandler = () => {
@@ -158,8 +194,18 @@ class Header extends Component {
     this.state.mobile === "" ? this.setState({ mobileRequired: "dispBlock" }) : this.setState({ mobileRequired: "dispNone" });
     this.state.passwordReg === "" ? this.setState({ passwordRegRequired: "dispBlock" }) : this.setState({ passwordRegRequired: "dispNone" });
     if (this.state.email === "" || this.state.firstname === "" || this.state.mobile === "" || this.state.passwordReg === "") { return; }
+    console.log(this.state.passwordReg)
 
     let that = this;
+    /*
+       let dataSignUp = JSON.stringify({
+       "firstName="+ this.state.firstname+
+       "&lastName="+ this.state.lastname+
+       "&emailAddress="+ this.state.email+
+         "&contactNumber="+ this.state.mobile+
+         "&password="+ this.state.passwordReg;
+       });
+   */
     let dataSignup = {
       'first_name': this.state.firstname,
       'last_name': this.state.lastname,
@@ -168,7 +214,32 @@ class Header extends Component {
       'contact_number': this.state.mobile,
     };
 
-    
+    let xhrSignup = new XMLHttpRequest();
+    xhrSignup.addEventListener("readystatechange", function () {
+      if (this.readyState === 4) {
+        let signupResponse = JSON.parse(this.response);
+        if (signupResponse.code === 'SGR-001'
+          || signupResponse.code === 'SGR-002'
+          || signupResponse.code === 'SGR-003'
+          || signupResponse.code === 'SGR-004') {
+          that.setState({ signupError: "dispBlock" });
+
+          that.setState({ signUpErrCode: signupResponse.code });
+          that.setState({ signUpErrorMsg: signupResponse.message });
+
+        } else {
+          that.setState({ registrationSuccess: true });
+          that.setState({ snackBarText: "Registered successfully! Please login now!" });
+          that.openMessageHandler();
+        }
+      }
+    })
+
+    xhrSignup.open("POST", this.props.baseUrl + "customer/signup");
+    xhrSignup.setRequestHeader("Content-Type", "application/json");
+    xhrSignup.setRequestHeader("Cache-Control", "no-cache");
+    xhrSignup.setRequestHeader("Access-Control-Allow-Origin", "*");
+    xhrSignup.send(JSON.stringify(dataSignup));
   }
 
 //Function invoked when Modal is opened
@@ -218,8 +289,62 @@ class Header extends Component {
     this.setState({ value });
   }
 
-  
+  // Opening of snack bar and toggling to Login tab after successfull signup
+  openMessageHandler = () => {
+    this.setState({ snackBarOpen: true });
+    this.setState({ modalIsOpen: true });
+    this.setState({ value: 0 });
+  }
 
+  // Opening snack bar and closing modal after successful login
+  openMessageHandlerPostLogin = () => {
+    this.setState({ snackBarOpen: true });
+    this.setState({ modalIsOpen: false });
+    this.setState({ value: 0 });
+  }
+
+  // Opening menu that contains the profile and logout link
+  openMenuHandler = (event) => {
+    this.setState({
+      menuIsOpen: true,
+    });
+    this.setState({
+      anchorEl: event.currentTarget,
+    });
+
+
+  }
+
+  // Closing menu that contains the profile and logout link
+  closeMenuHandler = () => {
+    this.setState({
+      menuIsOpen: false
+    });
+  }
+
+  //Function to invoke the drop down menu
+  handleClose = () => {
+    this.setState({
+      open: false,
+      showUserProfileDropDown: !this.state.showUserProfileDropDown
+    })
+  }
+
+  //Snack bar close common handler
+  handleSnackBarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    this.setState({ snackBarOpen: false })
+  }
+
+  // Logout function, redirects to Home page
+  logoutClickHandler = () => {
+    sessionStorage.clear();
+    this.props.history.push({
+      pathname: "/"
+    });
+  };
 
   render() {
     const { classes } = this.props;
@@ -229,32 +354,28 @@ class Header extends Component {
     )
 
     return (
-      <div className="topMain">
+      <div className="topMain"> 
         <div className="header-main-container">
           <div className="header-logo-container">{logoToRender}</div>
-          
+          {this.props.showSearch &&
             <div className="header-search-container">
               <div className="search-icon">
                 <SearchIcon style={{ color: "#FFFFFF" }} />
               </div>
               <Input
-                
+                onChange={this.props.searchRestaurantsByName.bind(this)}
                 className={classes.searchInput}
                 placeholder="Search by Restaurant Name"
               />
             </div>
-          
+          }
           {!this.state.loggedIn ?
             <div>
-              <Button style={{ fontSize: "100%" }} variant="contained" color="default" onClick={this.openModalHandler}>
-                  {/* <AccountCircle /> */}
-                  <span style={{ marginLeft: "2%" }}>Login</span></Button>
+              <Button style={{ fontSize: "100%" }} variant="contained" color="default" onClick={this.openModalHandler}><AccountCircle /><span style={{ marginLeft: "2%" }}>Login</span></Button>
             </div>
             :
             <div>
-              <Button style={{ textTransform: "capitalize", fontSize: "120%", background: " #263238", color: "lightgrey" }} onClick={this.openMenuHandler}>
-                  {/* <AccountCircle /> */}
-                  <span style={{ paddingLeft: "3%" }}>  {sessionStorage.getItem("firstName")}</span></Button>
+              <Button style={{ textTransform: "capitalize", fontSize: "120%", background: " #263238", color: "lightgrey" }} onClick={this.openMenuHandler}><AccountCircle /><span style={{ paddingLeft: "3%" }}>  {sessionStorage.getItem("firstName")}</span></Button>
               <div>
                 <Menu
                   className="menuDrop"
@@ -367,7 +488,30 @@ class Header extends Component {
             </form>
           </TabContainer>}
         </Modal>
-        
+        <Snackbar
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+          open={this.state.snackBarOpen}
+          autoHideDuration={6000}
+          onClose={this.handleSnackBarClose}
+          ContentProps={{
+            'aria-describedby': 'message-id',
+          }}
+          message={<span id="message-id">{this.state.snackBarText}</span>}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="Close"
+              color="inherit"
+              className={classes.close}
+              onClick={this.handleSnackBarClose}
+            >
+              <CloseIcon />
+            </IconButton>,
+          ]}
+        />
       </div>
     );
   }
